@@ -13,8 +13,19 @@ const Footer: React.FC = () => {
           </div>
           
           <div className="flex items-center space-x-6 text-sm text-gray-600 dark:text-gray-400">
-            <span>© 2025 TurboCash. All rights reserved. Built with ❤️ by <a href="https://shahriar.rf.gd/" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">Shahriar</a></span>
-          </div>
+  <span>
+    © 2025 TurboCash. All rights reserved. Built with ❤️ by{" "}
+    <a
+      href="https://shahriar.rf.gd/"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-blue-600 hover:underline"
+    >
+      Shahriar
+    </a>
+  </span>
+</div>
+
         </div>
       </div>
     </footer>
