@@ -3,6 +3,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import SummaryCards from '../components/SummaryCards';
 import TransactionTable from '../components/TransactionTable';
+import { supabase } from '../lib/supabase';
 
 interface Transaction {
   id: string;
@@ -30,12 +31,12 @@ interface DashboardProps {
   toggleDarkMode: () => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ 
-  userEmail, 
-  userRole, 
-  onLogout, 
-  darkMode, 
-  toggleDarkMode 
+const Dashboard: React.FC<DashboardProps> = ({
+  userEmail,
+  userRole,
+  onLogout,
+  darkMode,
+  toggleDarkMode
 }) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [summaryData, setSummaryData] = useState<SummaryData>({
@@ -49,53 +50,51 @@ const Dashboard: React.FC<DashboardProps> = ({
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
-        // Mock data - replace with Supabase queries
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        const mockTransactions: Transaction[] = [
-          {
-            id: '1',
-            date: '2025-01-15',
-            phone: '01712345678',
-            details: 'bKash',
-            amount: 1000,
-            charge: 20,
-            total_amount: 1020,
-            created_at: '2025-01-15T10:00:00Z'
-          },
-          {
-            id: '2',
-            date: '2025-01-14',
-            phone: '01887654321',
-            details: 'Nagad',
-            amount: 500,
-            charge: 10,
-            total_amount: 510,
-            created_at: '2025-01-14T15:30:00Z'
-          },
-          {
-            id: '3',
-            date: '2025-01-13',
-            phone: '01998765432',
-            details: 'Rocket',
-            amount: 750,
-            charge: 15,
-            total_amount: 765,
-            created_at: '2025-01-13T14:20:00Z'
-          }
-        ];
-        
-        // Calculate summary
-        const totalAmount = mockTransactions.reduce((sum, t) => sum + t.amount, 0);
-        const totalCharges = mockTransactions.reduce((sum, t) => sum + t.charge, 0);
-        const netTotal = mockTransactions.reduce((sum, t) => sum + t.total_amount, 0);
-        
-        setTransactions(mockTransactions);
+        setLoading(true);
+
+        // 1️⃣ Get logged-in user
+        const { data: authData, error: authError } =
+          await supabase.auth.getUser();
+
+        if (authError || !authData.user) {
+          throw new Error('User not authenticated');
+        }
+
+        // 2️⃣ Fetch transactions for this user
+        const { data, error } = await supabase
+          .from('transactions')
+          .select('*')
+          .eq('user_id', authData.user.id)
+          .order('date', { ascending: false });
+
+        if (error) {
+          throw error;
+        }
+
+        const transactionsData = data || [];
+
+        // 3️⃣ Calculate summary
+        const totalAmount = transactionsData.reduce(
+          (sum, t) => sum + Number(t.amount),
+          0
+        );
+
+        const totalCharges = transactionsData.reduce(
+          (sum, t) => sum + Number(t.charge),
+          0
+        );
+
+        const netTotal = transactionsData.reduce(
+          (sum, t) => sum + Number(t.total_amount),
+          0
+        );
+
+        setTransactions(transactionsData);
         setSummaryData({
           totalAmount,
           totalCharges,
           netTotal,
-          transactionCount: mockTransactions.length
+          transactionCount: transactionsData.length
         });
       } catch (error) {
         console.error('Failed to load dashboard data:', error);
@@ -109,27 +108,34 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
-      <Header 
+      <Header
         userEmail={userEmail}
         userRole={userRole}
         onLogout={onLogout}
         darkMode={darkMode}
         toggleDarkMode={toggleDarkMode}
       />
-      
+
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-8">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Dashboard</h1>
-            <p className="text-gray-600 dark:text-gray-400">Overview of your financial activities</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              Dashboard
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              Overview of your financial activities
+            </p>
           </div>
-          
+
           <SummaryCards data={summaryData} loading={loading} />
-          
-          <TransactionTable transactions={transactions} loading={loading} />
+
+          <TransactionTable
+            transactions={transactions}
+            loading={loading}
+          />
         </div>
       </main>
-      
+
       <Footer />
     </div>
   );
